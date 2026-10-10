@@ -9,7 +9,7 @@ services:
       - N8N_HOST=localhost
       - N8N_PORT=5678
       - N8N_PROTOCOL=http
-      - WEBHOOK_URL=http://localhost:1080/
+      - N8N_WEBHOOK_URL=http://localhost:1080/
       - GENERIC_TIMEZONE=${TZ:-Asia/Kolkata}
       - N8N_LOG_LEVEL=warn
       - N8N_DIAGNOSTICS_ENABLED=false
