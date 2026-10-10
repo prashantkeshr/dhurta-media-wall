@@ -1,0 +1,15 @@
+{
+  "_help": "Add, remove, or edit platforms below. 'name' becomes the output folder. 'w' = width in pixels, 'h' = height in pixels.",
+  "_tip": "To disable a platform, just delete its line. To add one, copy any line and change the values.",
+  "platforms": [
+    { "name": "instagram_square",   "w": 1080, "h": 1080 },
+    { "name": "instagram_story",    "w": 1080, "h": 1920 },
+    { "name": "instagram_landscape","w": 1080, "h": 566  },
+    { "name": "youtube_thumbnail",  "w": 1280, "h": 720  },
+    { "name": "twitter_post",       "w": 1200, "h": 675  },
+    { "name": "linkedin_post",      "w": 1200, "h": 628  },
+    { "name": "wallpaper_hd",       "w": 1920, "h": 1080 },
+    { "name": "wallpaper_4k",       "w": 3840, "h": 2160 },
+    { "name": "facebook_post",      "w": 1200, "h": 630  }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "_help": "Controls the watermark on every exported image.",
+  "_tip_text":     "Set 'text' to '' (empty) to disable the watermark completely.",
+  "_tip_color":    "Color must be a hex code. #ffffff = white, #000000 = black.",
+  "_tip_position": "position_x and position_y are pixels from the TOP-LEFT corner.",
+  "_tip_size":     "font_size options: 8, 10, 12, 14, 16, 32, 64, 128",
+
+  "text":       "dhurta.org",
+  "font_size":  32,
+  "color":      "#ffffff",
+  "position_x": 24,
+  "position_y": 24
+}

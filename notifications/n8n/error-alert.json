@@ -1,0 +1,51 @@
+{
+  "name": "Error Alert — Telegram",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "n1",
+      "name": "On Any Workflow Error",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [60, 300]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const fs = require('fs');\n\nlet cfg;\ntry {\n  cfg = JSON.parse(fs.readFileSync('/data/notifications/config.json', 'utf8'));\n} catch (e) {\n  throw new Error('Cannot read /data/notifications/config.json — did you fill in your Telegram token and chat ID?');\n}\n\nif (!cfg.notify_on_error) return [];\nif (cfg.telegram_bot_token === 'YOUR_BOT_TOKEN_HERE') {\n  throw new Error('Please set telegram_bot_token in notifications/config.json');\n}\n\nconst err = $input.first().json;\nconst wfName   = err.workflow?.name || 'Unknown workflow';\nconst errMsg   = err.execution?.error?.message || 'No error message';\nconst execId   = err.execution?.id || '';\nconst execTime = new Date().toLocaleString('en-IN', { timeZone: cfg.timezone || 'Asia/Kolkata' });\n\nconst message = [\n  `🚨 <b>Workflow Failed</b>`,\n  ``,\n  `📋 <b>Workflow:</b> ${wfName}`,\n  `❌ <b>Error:</b> ${errMsg}`,\n  `🕐 <b>Time:</b> ${execTime}`,\n  execId ? `🔗 <b>Execution ID:</b> ${execId}` : '',\n  ``,\n  `<i>— ${cfg.project_name || 'Automate Hub'}</i>`\n].filter(Boolean).join('\\n');\n\nreturn [{\n  json: {\n    token:   cfg.telegram_bot_token,\n    chat_id: cfg.telegram_chat_id,\n    message\n  }\n}];"
+      },
+      "id": "n2",
+      "name": "Read Config & Build Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [280, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $json.token }}/sendMessage",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({ chat_id: $json.chat_id, text: $json.message, parse_mode: 'HTML' }) }}",
+        "options": { "timeout": 10000 }
+      },
+      "id": "n3",
+      "name": "Send Telegram Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 300]
+    }
+  ],
+  "connections": {
+    "On Any Workflow Error": {
+      "main": [[{ "node": "Read Config & Build Message", "type": "main", "index": 0 }]]
+    },
+    "Read Config & Build Message": {
+      "main": [[{ "node": "Send Telegram Alert", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1" },
+  "staticData": null,
+  "tags": [{ "name": "notifications" }]
+}

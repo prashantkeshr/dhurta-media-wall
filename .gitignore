@@ -1,0 +1,22 @@
+# n8n database and logs — contains account credentials, never commit
+n8n_data/
+
+# Generated outputs — too large for git
+wallpaper/output/
+media/output/
+content/output/
+assets/output/
+
+# Scheduler generated files
+scheduler/status.html
+scheduler/job_log.csv
+
+# Environment overrides
+.env
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# Node
+node_modules/

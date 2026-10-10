@@ -1,0 +1,60 @@
+{
+  "name": "Daily Summary — Telegram",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour":   8,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "n1",
+      "name": "Every Day at 8 AM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [60, 300]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const fs   = require('fs');\nconst path = require('path');\n\nlet cfg;\ntry {\n  cfg = JSON.parse(fs.readFileSync('/data/notifications/config.json', 'utf8'));\n} catch (e) {\n  throw new Error('Cannot read /data/notifications/config.json');\n}\n\nif (cfg.telegram_bot_token === 'YOUR_BOT_TOKEN_HERE') {\n  throw new Error('Please set telegram_bot_token in notifications/config.json');\n}\n\n// ── Helpers ──────────────────────────────────────────────────\nconst today = new Date().toLocaleDateString('en-IN', {\n  timeZone: cfg.timezone || 'Asia/Kolkata',\n  day: '2-digit', month: 'short', year: 'numeric'\n});\n\nfunction countTodayFiles(dir, ext) {\n  if (!fs.existsSync(dir)) return 0;\n  const cutoff = new Date(); cutoff.setHours(0, 0, 0, 0);\n  let count = 0;\n  function walk(d) {\n    fs.readdirSync(d).forEach(f => {\n      const full = path.join(d, f);\n      const stat = fs.statSync(full);\n      if (stat.isDirectory()) walk(full);\n      else if (stat.mtimeMs >= cutoff && (!ext || f.endsWith(ext))) count++;\n    });\n  }\n  walk(dir);\n  return count;\n}\n\nfunction countTodayFolders(dir) {\n  if (!fs.existsSync(dir)) return 0;\n  const cutoff = new Date(); cutoff.setHours(0, 0, 0, 0);\n  return fs.readdirSync(dir)\n    .filter(f => {\n      const s = fs.statSync(path.join(dir, f));\n      return s.isDirectory() && s.mtimeMs >= cutoff;\n    }).length;\n}\n\n// ── Count today's output ─────────────────────────────────────\nconst contentFiles  = countTodayFiles('/data/content/output', '.md');\nconst mediaRuns     = countTodayFolders('/data/media/output');\nconst wallpaperFiles= countTodayFiles('/data/wallpaper/output', '.png') +\n                      countTodayFiles('/data/wallpaper/output', '.jpg');\n\nconst total = contentFiles + mediaRuns + wallpaperFiles;\n\n// ── Build message ─────────────────────────────────────────────\nconst lines = [\n  `📊 <b>Daily Summary — ${today}</b>`,\n  ``,\n];\n\nif (total === 0) {\n  lines.push(`😴 Nothing was generated today.`);\n} else {\n  lines.push(`✅ <b>${total} item(s) generated today</b>`, ``);\n  if (contentFiles  > 0) lines.push(`📝 Content files:   <b>${contentFiles}</b>`);\n  if (mediaRuns     > 0) lines.push(`🖼️  Media batches:   <b>${mediaRuns}</b>`);\n  if (wallpaperFiles> 0) lines.push(`🖼️  Wallpapers:      <b>${wallpaperFiles}</b>`);\n}\n\nlines.push(``, `<i>— ${cfg.project_name || 'Automate Hub'}</i>`);\n\nreturn [{\n  json: {\n    token:   cfg.telegram_bot_token,\n    chat_id: cfg.telegram_chat_id,\n    message: lines.join('\\n')\n  }\n}];"
+      },
+      "id": "n2",
+      "name": "Count Today's Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [280, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $json.token }}/sendMessage",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({ chat_id: $json.chat_id, text: $json.message, parse_mode: 'HTML' }) }}",
+        "options": { "timeout": 10000 }
+      },
+      "id": "n3",
+      "name": "Send Daily Summary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 300]
+    }
+  ],
+  "connections": {
+    "Every Day at 8 AM": {
+      "main": [[{ "node": "Count Today's Output", "type": "main", "index": 0 }]]
+    },
+    "Count Today's Output": {
+      "main": [[{ "node": "Send Daily Summary", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1" },
+  "staticData": null,
+  "tags": [{ "name": "notifications" }]
+}

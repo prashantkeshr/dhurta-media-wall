@@ -1,0 +1,114 @@
+{
+  "name": "Image Processor — Resize & Watermark",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Image Processor",
+        "formDescription": "Upload an image to resize it for all platforms and add a watermark. Settings are in media/platforms.json and media/watermark.json.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Image",
+              "fieldType": "file",
+              "requiredField": true,
+              "acceptFileTypes": ".jpg,.jpeg,.png,.webp"
+            }
+          ]
+        },
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "n1",
+      "name": "Upload Image",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [60, 300],
+      "webhookId": "automate-image-processor-v1"
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// ─────────────────────────────────────────────────────────────\n// READ CONFIG FILES\n// To change platform sizes → edit media/platforms.json\n// To change watermark      → edit media/watermark.json\n// ─────────────────────────────────────────────────────────────\nconst fs   = require('fs');\nconst path = require('path');\n\nconst platformsCfg = JSON.parse(fs.readFileSync('/data/media/platforms.json', 'utf8'));\nconst watermarkCfg = JSON.parse(fs.readFileSync('/data/media/watermark.json', 'utf8'));\n\nconst item      = $input.first();\nconst binaryKey = Object.keys(item.binary || {})[0];\nif (!binaryKey) throw new Error('No image found. Please upload an image.');\n\nconst imageBinary = item.binary[binaryKey];\nconst origName    = (imageBinary.fileName || 'image').replace(/\\.[^.]+$/, '').replace(/[^a-zA-Z0-9_-]/g, '_');\nconst ts          = new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');\n\n// Create output directories for every platform\nplatformsCfg.platforms.forEach(p => {\n  const dir = path.join('/data/media/output', ts, p.name);\n  fs.mkdirSync(dir, { recursive: true });\n});\n\n// Return one item per platform — all carry the original image binary\nreturn platformsCfg.platforms.map(p => ({\n  json: {\n    platform:          p.name,\n    width:             p.w,\n    height:            p.h,\n    watermark_text:    watermarkCfg.text        || '',\n    watermark_size:    watermarkCfg.font_size   || 32,\n    watermark_color:   watermarkCfg.color       || '#ffffff',\n    watermark_x:       watermarkCfg.position_x  || 24,\n    watermark_y:       watermarkCfg.position_y  || 24,\n    orig_name:         origName,\n    ts:                ts,\n    output_path:       `/data/media/output/${ts}/${p.name}/${origName}_${p.name}.jpg`\n  },\n  binary: { data: imageBinary }\n}));"
+      },
+      "id": "n2",
+      "name": "Read Config & Split",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [280, 300]
+    },
+    {
+      "parameters": {
+        "operation": "resize",
+        "width":  "={{ $json.width }}",
+        "height": "={{ $json.height }}",
+        "resizeOption": "ignoreAspectRatio",
+        "dataPropertyName": "data"
+      },
+      "id": "n3",
+      "name": "Resize to Platform Size",
+      "type": "n8n-nodes-base.editImage",
+      "typeVersion": 1,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "text":       "={{ $json.watermark_text }}",
+        "font":       "Open Sans",
+        "fontSize":   "={{ $json.watermark_size }}",
+        "fontColor":  "={{ $json.watermark_color }}",
+        "positionX":  "={{ $json.watermark_x }}",
+        "positionY":  "={{ $json.watermark_y }}",
+        "dataPropertyName": "data"
+      },
+      "id": "n4",
+      "name": "Apply Watermark",
+      "type": "n8n-nodes-base.editImage",
+      "typeVersion": 1,
+      "position": [720, 300]
+    },
+    {
+      "parameters": {
+        "fileName":           "={{ $json.output_path }}",
+        "dataPropertyName":   "data"
+      },
+      "id": "n5",
+      "name": "Save to Disk",
+      "type": "n8n-nodes-base.writeBinaryFile",
+      "typeVersion": 1,
+      "position": [940, 300]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// Collect all saved files and return a summary\nconst items = $input.all();\nconst saved = items.map(i => i.json.output_path);\nconst first = items[0]?.json || {};\n\nreturn [{\n  json: {\n    status:    'done',\n    total:     saved.length,\n    folder:    `/data/media/output/${first.ts}/`,\n    platforms: items.map(i => ({\n      name: i.json.platform,\n      size: `${i.json.width}x${i.json.height}`,\n      file: i.json.output_path.split('/').pop()\n    }))\n  }\n}];"
+      },
+      "id": "n6",
+      "name": "Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1160, 300]
+    }
+  ],
+  "connections": {
+    "Upload Image": {
+      "main": [[{ "node": "Read Config & Split", "type": "main", "index": 0 }]]
+    },
+    "Read Config & Split": {
+      "main": [[{ "node": "Resize to Platform Size", "type": "main", "index": 0 }]]
+    },
+    "Resize to Platform Size": {
+      "main": [[{ "node": "Apply Watermark", "type": "main", "index": 0 }]]
+    },
+    "Apply Watermark": {
+      "main": [[{ "node": "Save to Disk", "type": "main", "index": 0 }]]
+    },
+    "Save to Disk": {
+      "main": [[{ "node": "Summary", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1" },
+  "staticData": null,
+  "tags": [{ "name": "media" }]
+}

@@ -1,0 +1,35 @@
+services:
+  n8n:
+    image: n8nio/n8n:v3-nightly-20260920-pc
+    container_name: automate-n8n
+    restart: unless-stopped
+    ports:
+      - "1080:5678"
+    environment:
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://localhost:1080/
+      - GENERIC_TIMEZONE=${TZ:-Asia/Kolkata}
+      - N8N_LOG_LEVEL=warn
+      - N8N_DIAGNOSTICS_ENABLED=false
+      - N8N_VERSION_NOTIFICATIONS_ENABLED=false
+      - N8N_TEMPLATES_ENABLED=false
+      - N8N_HIRING_BANNER_ENABLED=false
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=false
+      - EXECUTIONS_DATA_PRUNE=true
+      - EXECUTIONS_DATA_MAX_AGE=72
+    volumes:
+      - ./n8n_data:/home/node/.n8n
+      - ./assets:/data/assets
+      - ./wallpaper:/data/wallpaper
+      - ./content:/data/content
+      - ./media:/data/media
+      - ./notifications:/data/notifications
+      - ./scheduler:/data/scheduler
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5678/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s

@@ -1,0 +1,42 @@
+{
+  "_help": "Moment.Labs social media identity. Edit here — no workflow changes needed.",
+
+  "instagram_handle":  "@momentlabs",
+  "dm_price_text":     "DM for wallpaper pack — FREE",
+  "cover_style":       "dark",
+  "_cover_style_tip":  "dark | light | glass — affects the social cover card background",
+
+  "device_type":       "all",
+  "_device_type_tip":  "all | phone | desktop — 'all' shows iPhone+Android+MacBook+Desktop in one composite mockup",
+
+  "gaming_bg_rotation": true,
+  "_bg_rotation_tip":   "true = pick a random background image from wallpaper/backgrounds/gaming/ each run; false = use first image always",
+
+  "mockup_layout":     "quad",
+  "_mockup_layout_tip":"quad = 2×2 grid with all 4 devices; single = one device centred",
+
+  "cover_card": {
+    "_tip":         "Text overlaid on the cover image that leads the social post",
+    "title_line1":  "Moment.Labs",
+    "title_line2":  "Premium Wallpapers",
+    "tagline":      "One tap. Any screen. Pure vibe.",
+    "show_price":   true
+  },
+
+  "dm_page": {
+    "_tip":     "Last slide in the social carousel — call to action",
+    "headline": "Want this for FREE?",
+    "body":     "Drop a DM  👇\nWe'll send the full pack.",
+    "cta":      "DM us now"
+  },
+
+  "watermark": {
+    "_tip":     "Short text stamped on every generated image. Leave blank to disable.",
+    "text":     "@momentlabs",
+    "position": "bottom_right",
+    "opacity":  0.55
+  },
+
+  "telegram_notify": true,
+  "_telegram_tip":   "Send a Telegram message when a batch completes. Uses notifications/config.json for the token."
+}

@@ -1,0 +1,60 @@
+{
+  "_help": "Style presets. Ollama uses these as a base and enriches them with the CSV row context.",
+  "_tip":  "Add your own style by copying any block. The name must match exactly what you put in the CSV 'style' column.",
+
+  "Cinematic": {
+    "prompt_prefix":   "cinematic photograph, dramatic volumetric lighting, film grain, anamorphic lens flare, ultra realistic",
+    "prompt_suffix":   "8k resolution, professional photography, award winning, masterpiece",
+    "negative_prompt": "cartoon, anime, painting, blur, watermark, text, logo, ugly, deformed, low quality",
+    "steps": 30, "cfg": 7.5, "sampler": "euler_ancestral"
+  },
+
+  "Minimalist": {
+    "prompt_prefix":   "minimalist design, clean composition, generous negative space, single focal point, flat design",
+    "prompt_suffix":   "simple elegant, premium branding, high contrast, Swiss design",
+    "negative_prompt": "busy, cluttered, photorealistic, text, watermark, noise, grain",
+    "steps": 20, "cfg": 6.0, "sampler": "euler"
+  },
+
+  "Nature": {
+    "prompt_prefix":   "nature photography, golden hour light, photorealistic landscape, stunning scenery",
+    "prompt_suffix":   "National Geographic style, sharp detail, natural bokeh, perfect lighting",
+    "negative_prompt": "people, urban, buildings, watermark, blur, text, artificial",
+    "steps": 30, "cfg": 7.0, "sampler": "dpm_2_ancestral"
+  },
+
+  "Abstract": {
+    "prompt_prefix":   "premium abstract art, flowing organic shapes, fluid dynamics, fractal patterns",
+    "prompt_suffix":   "digital art masterpiece, complex layered composition, vibrant depth",
+    "negative_prompt": "realistic people, text, watermark, ugly, simple, plain",
+    "steps": 25, "cfg": 8.0, "sampler": "euler_ancestral"
+  },
+
+  "Neon": {
+    "prompt_prefix":   "cyberpunk neon city, rain-soaked streets, neon reflections, dark atmosphere, moody",
+    "prompt_suffix":   "blade runner aesthetic, ultra detailed, cinematic grade, moody shadows",
+    "negative_prompt": "daylight, bright colors, natural, cartoon, watermark, text",
+    "steps": 30, "cfg": 8.5, "sampler": "euler_ancestral"
+  },
+
+  "Vintage": {
+    "prompt_prefix":   "vintage film photography, faded warm tones, 1970s film aesthetic, nostalgic",
+    "prompt_suffix":   "analogue grain, retro vibes, light leaks, Kodak film look",
+    "negative_prompt": "modern, digital, sharp, HDR, watermark, text, neon",
+    "steps": 25, "cfg": 7.0, "sampler": "euler"
+  },
+
+  "Architecture": {
+    "prompt_prefix":   "architectural photography, geometric precision, modern brutalist structures",
+    "prompt_suffix":   "dramatic shadows, premium design, sharp lines, professional photography",
+    "negative_prompt": "people, nature, organic shapes, blur, cartoon, watermark",
+    "steps": 30, "cfg": 7.5, "sampler": "dpm_2"
+  },
+
+  "Space": {
+    "prompt_prefix":   "deep space photography, NASA style, stunning nebula, cosmic wonder, photorealistic",
+    "prompt_suffix":   "ultra detailed stars, milky way, ethereal glow, breathtaking universe",
+    "negative_prompt": "earth surface, people, urban, text, watermark, cartoon",
+    "steps": 35, "cfg": 8.0, "sampler": "euler_ancestral"
+  }
+}

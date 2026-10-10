@@ -1,0 +1,46 @@
+{
+  "_help": "Moment.Labs — all settings. Edit here, no need to touch any workflow.",
+
+  "comfyui_url": "http://host.docker.internal:8188",
+
+  "_models_tip": "Check exact filenames in your ComfyUI/models/checkpoints/ folder",
+  "models": {
+    "realvis": "realvisxlV50_v50Bakedvae.safetensors",
+    "sdxl":    "sd_xl_base_1.0.safetensors",
+    "fast":    "sdxlTurboV10_fp16.safetensors"
+  },
+
+  "default_model":  "realvis",
+  "default_steps":  25,
+  "default_cfg":    7.5,
+  "default_count":  4,
+
+  "image": {
+    "_tip": "9:16 vertical fits Instagram, Stories, TikTok, Pinterest, Phone — one size all",
+    "width":  1080,
+    "height": 1920
+  },
+
+  "_poll_tip": "How long to wait for each ComfyUI image. Increase if getting timeouts.",
+  "poll_max_attempts": 36,
+  "poll_interval_sec": 5,
+
+  "projects_source": "google_sheet",
+  "_projects_source_tip": "google_sheet = fetch live from the URL below | local = read wallpaper/projects.csv",
+  "google_sheet_csv_url": "https://docs.google.com/spreadsheets/d/15XYpeEjwdwoFKcjRzHQunXNR5UAPIioeLlT1xwQ3BEg/export?format=csv&gid=0",
+  "_google_sheet_tip": "Sheet must be shared as 'Anyone with the link can view'. Copy the export URL from File > Share > Publish to web > CSV.",
+
+  "ollama_url":   "http://host.docker.internal:11434",
+  "ollama_model": "qwen3:8b",
+
+  "_schedule_tip": "24-hour format. Runs batch at this time every day.",
+  "batch_schedule_hour":   2,
+  "batch_schedule_minute": 0,
+  "timezone": "Asia/Kolkata",
+
+  "recycle_after_days": 30,
+
+  "output_folder":              "/data/wallpaper/output",
+  "gaming_backgrounds_folder":  "/data/wallpaper/backgrounds/gaming",
+  "device_frames_folder":       "/data/wallpaper/frames"
+}

@@ -1,0 +1,202 @@
+{
+  "name": "AI Content Generator",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "AI Content Generator",
+        "formDescription": "Generate a blog post and social caption using local AI (Ollama).",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Topic",
+              "fieldType": "text",
+              "requiredField": true,
+              "placeholder": "e.g. Benefits of morning walks"
+            },
+            {
+              "fieldLabel": "Tone",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  { "option": "Professional" },
+                  { "option": "Casual" },
+                  { "option": "Inspirational" },
+                  { "option": "Educational" }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Language",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  { "option": "English" },
+                  { "option": "Hindi" },
+                  { "option": "Hinglish" }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Model",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  { "option": "qwen3:8b" },
+                  { "option": "llama3.2:3b" },
+                  { "option": "gemma3:4b" }
+                ]
+              }
+            }
+          ]
+        },
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "n1",
+      "name": "Content Form",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [60, 300],
+      "webhookId": "automate-content-gen-v1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "topic",
+              "value": "={{ $json['Topic'] }}",
+              "type": "string"
+            },
+            {
+              "id": "a2",
+              "name": "tone",
+              "value": "={{ $json['Tone'] || 'Professional' }}",
+              "type": "string"
+            },
+            {
+              "id": "a3",
+              "name": "language",
+              "value": "={{ $json['Language'] || 'English' }}",
+              "type": "string"
+            },
+            {
+              "id": "a4",
+              "name": "model",
+              "value": "={{ $json['Model'] || 'qwen3:8b' }}",
+              "type": "string"
+            },
+            {
+              "id": "a5",
+              "name": "ts",
+              "value": "={{ $now.format('yyyy-MM-dd_HHmmss') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "n2",
+      "name": "Setup",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [280, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:11434/api/generate",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({ model: $json.model, prompt: 'Write a ' + $json.tone.toLowerCase() + ' blog post in ' + $json.language + ' about: ' + $json.topic + '. Include: a compelling title, an introduction, 3 main points with explanations, and a conclusion. Max 350 words. Use plain text only, no markdown symbols.', stream: false }) }}",
+        "options": {
+          "timeout": 120000,
+          "response": { "response": { "neverError": true } }
+        }
+      },
+      "id": "n3",
+      "name": "Generate Blog Post",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:11434/api/generate",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({ model: $('Setup').first().json.model, prompt: 'Write a ' + $('Setup').first().json.tone.toLowerCase() + ' social media caption in ' + $('Setup').first().json.language + ' for this topic: ' + $('Setup').first().json.topic + '. Keep it under 4 sentences. End with 5 relevant hashtags. No extra commentary.', stream: false }) }}",
+        "options": {
+          "timeout": 60000,
+          "response": { "response": { "neverError": true } }
+        }
+      },
+      "id": "n4",
+      "name": "Generate Caption",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 420]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combinationMode": "mergeByPosition",
+        "options": {}
+      },
+      "id": "n5",
+      "name": "Merge",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [720, 300]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const fs = require('fs');\nconst path = require('path');\n\nconst setup  = $('Setup').first().json;\nconst blog   = ($('Generate Blog Post').first().json.response || '').trim();\nconst caption = ($('Generate Caption').first().json.response || '').trim();\n\nconst slug     = setup.topic.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase().replace(/-+/g, '-').slice(0, 45);\nconst filename = `${setup.ts}_${slug}.md`;\n\nconst md = [\n  `# ${setup.topic}`,\n  ``,\n  `> Generated: ${setup.ts.replace('_', ' ')}  `,\n  `> Tone: **${setup.tone}** | Language: **${setup.language}** | Model: \\`${setup.model}\\``,\n  ``,\n  `---`,\n  ``,\n  `## Blog Post`,\n  ``,\n  blog,\n  ``,\n  `---`,\n  ``,\n  `## Social Caption`,\n  ``,\n  caption\n].join('\\n');\n\nconst dir = '/data/content/output';\nif (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });\nfs.writeFileSync(path.join(dir, filename), md, 'utf8');\n\nreturn [{\n  json: {\n    status: 'saved',\n    filename,\n    path: `/data/content/output/${filename}`,\n    topic: setup.topic,\n    model: setup.model,\n    preview_blog: blog.slice(0, 120) + '...',\n    preview_caption: caption.slice(0, 80) + '...'\n  }\n}];"
+      },
+      "id": "n6",
+      "name": "Save & Package",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [940, 300]
+    }
+  ],
+  "connections": {
+    "Content Form": {
+      "main": [
+        [{ "node": "Setup", "type": "main", "index": 0 }]
+      ]
+    },
+    "Setup": {
+      "main": [
+        [
+          { "node": "Generate Blog Post", "type": "main", "index": 0 },
+          { "node": "Generate Caption",   "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Generate Blog Post": {
+      "main": [
+        [{ "node": "Merge", "type": "main", "index": 0 }]
+      ]
+    },
+    "Generate Caption": {
+      "main": [
+        [{ "node": "Merge", "type": "main", "index": 1 }]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [{ "node": "Save & Package", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [{ "name": "content" }]
+}

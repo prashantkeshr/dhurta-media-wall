@@ -1,0 +1,187 @@
+{
+  "id": "moment-labs-instant-001",
+  "name": "Moment.Labs — Instant (Form)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "moment-labs-instant",
+        "responseMode": "formPage",
+        "formTitle": "Moment.Labs — Generate Now",
+        "formDescription": "Fill in your project details and hit Generate. Ollama + ComfyUI will do the rest.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Project Name",
+              "fieldType": "text",
+              "requiredField": true,
+              "placeholder": "Cyber City Night"
+            },
+            {
+              "fieldLabel": "Theme / Description",
+              "fieldType": "text",
+              "requiredField": true,
+              "placeholder": "futuristic city with glowing neons at night"
+            },
+            {
+              "fieldLabel": "Style",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  { "option": "Cinematic" },
+                  { "option": "Minimalist" },
+                  { "option": "Nature" },
+                  { "option": "Abstract" },
+                  { "option": "Neon" },
+                  { "option": "Vintage" },
+                  { "option": "Architecture" },
+                  { "option": "Space" }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Use Case",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  { "option": "wallpaper" },
+                  { "option": "poster" },
+                  { "option": "sticker" },
+                  { "option": "frame" }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "How many images?",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  { "option": "1" },
+                  { "option": "2" },
+                  { "option": "4" },
+                  { "option": "6" }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Extra details (optional)",
+              "fieldType": "text",
+              "placeholder": "rain reflections, wet streets, foggy atmosphere"
+            },
+            {
+              "fieldLabel": "Mood (optional)",
+              "fieldType": "text",
+              "placeholder": "dark energetic cinematic"
+            },
+            {
+              "fieldLabel": "Colors (optional)",
+              "fieldType": "text",
+              "placeholder": "deep blue cyan magenta"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node_form_trigger",
+      "name": "Form Trigger",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.1,
+      "position": [240, 300],
+      "webhookId": "moment-labs-instant-v1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ─── MAP FORM TO ROW FORMAT ──────────────────────────────────────────────────\nconst fs = require('fs');\n\nconst configPath  = '/data/wallpaper/config.json';\nconst stylesPath  = '/data/wallpaper/styles.json';\nconst socialPath  = '/data/wallpaper/social.json';\n\nconst config  = JSON.parse(fs.readFileSync(configPath,  'utf8'));\nconst styles  = JSON.parse(fs.readFileSync(stylesPath,  'utf8'));\nconst social  = JSON.parse(fs.readFileSync(socialPath,  'utf8'));\n\nconst form = $input.first().json;\n\nconst row = {\n  project_name:   form['Project Name']            || 'Untitled',\n  theme:          form['Theme / Description']      || '',\n  style:          form['Style']                    || 'Cinematic',\n  'Use Case':     form['Use Case']                 || 'wallpaper',\n  count:          form['How many images?']         || '4',\n  prompt_add:     form['Extra details (optional)'] || '',\n  mood:           form['Mood (optional)']          || '',\n  color_palette:  form['Colors (optional)']        || '',\n  model:          '',\n  steps:          '',\n  cfg_scale:      '',\n  negative_prompt:'',\n  custom_prompt:  ''\n};\n\nconst cleanStyles = {};\nObject.keys(styles).forEach(k => { if (!k.startsWith('_')) cleanStyles[k] = styles[k]; });\n\nreturn [{ json: { row, config, styles: cleanStyles, social, csvPath: null, header: [] } }];"
+      },
+      "id": "node_form_setup",
+      "name": "Map Form → Project Row",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Same Ollama enrichment as batch workflow\nconst row    = $json.row;\nconst config = $json.config;\nconst styles = $json.styles;\nconst social = $json.social;\n\nconst useCase = (row['Use Case'] || 'wallpaper').toLowerCase();\nconst useCaseAura = {\n  wallpaper: 'seamless full-bleed background, no UI elements, immersive environment',\n  poster:    'studio product photography, strong focal point, premium ad quality',\n  sticker:   'isolated subject on transparent/solid background, bold clean edges, cartoon-friendly',\n  frame:     'ornate decorative border, baroque or luxury frame style, elegant inner space'\n};\nconst aura   = useCaseAura[useCase] || useCaseAura.wallpaper;\nconst styleKey = row.style || 'Cinematic';\nconst preset   = styles[styleKey] || styles['Cinematic'];\n\nconst systemPrompt = `You are an expert AI art director. Respond ONLY with a JSON object, no markdown, no explanation.\nRequired keys: main_prompt, negative_prompt, title, description, tags (array 10), mood, color_palette, subject_details`;\n\nconst userPrompt = `Project: ${row.project_name}\\nTheme: ${row.theme}\\nStyle: ${styleKey}\\nUse Case: ${useCase} — ${aura}\\nMood: ${row.mood || ''}\\nColors: ${row.color_palette || ''}\\nExtra: ${row.prompt_add || ''}\\nStyle prefix: ${preset.prompt_prefix}\\nStyle suffix: ${preset.prompt_suffix}\\nMake a vivid SDXL-optimised prompt. 9:16 vertical composition. Include #momentlabs in tags.`;\n\nconst ollamaUrl = config.ollama_url || 'http://host.docker.internal:11434';\nconst model     = config.ollama_model || 'qwen3:8b';\n\nconst response = await fetch(`${ollamaUrl}/api/chat`, {\n  method: 'POST',\n  headers: { 'Content-Type': 'application/json' },\n  body: JSON.stringify({\n    model,\n    messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }],\n    stream: false,\n    options: { temperature: 0.8, num_predict: 600 }\n  })\n});\n\nif (!response.ok) throw new Error(`Ollama error: ${response.status}`);\nconst data = await response.json();\nlet enriched;\ntry {\n  const raw = data.message?.content || data.response || '{}';\n  const m = raw.match(/\\{[\\s\\S]*\\}/);\n  enriched = JSON.parse(m ? m[0] : raw);\n} catch(e) {\n  enriched = { main_prompt: `${preset.prompt_prefix}, ${row.theme}, ${preset.prompt_suffix}`, negative_prompt: preset.negative_prompt, title: row.project_name, description: row.theme, tags: ['#momentlabs'], mood: row.mood, color_palette: row.color_palette, subject_details: row.theme };\n}\n\nconst count = parseInt(row.count) || 4;\nconst steps = parseInt(row.steps) || preset.steps || config.default_steps || 25;\nconst cfg   = parseFloat(row.cfg_scale) || preset.cfg || config.default_cfg || 7.5;\n\nreturn [{ json: { ...$json, enriched, useCase, count, model: row.model || config.default_model || 'realvis', steps, cfg, preset } }];"
+      },
+      "id": "node_ollama_instant",
+      "name": "Ollama — Enrich Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Same ComfyUI submit as batch\nconst config   = $json.config;\nconst enriched = $json.enriched;\nconst row      = $json.row;\nconst models   = config.models || {};\nconst modelFile = models[$json.model] || models['realvis'] || 'realvisxlV50_v50Bakedvae.safetensors';\nconst width = config.image?.width || 1080, height = config.image?.height || 1920;\nconst count = $json.count || 4, steps = $json.steps || 25, cfg = $json.cfg || 7.5;\n\nconst workflow = {\n  \"1\": { \"class_type\": \"CheckpointLoaderSimple\", \"inputs\": { \"ckpt_name\": modelFile } },\n  \"2\": { \"class_type\": \"CLIPTextEncode\", \"inputs\": { \"text\": enriched.main_prompt, \"clip\": [\"1\", 1] } },\n  \"3\": { \"class_type\": \"CLIPTextEncode\", \"inputs\": { \"text\": enriched.negative_prompt || 'watermark, text, blur', \"clip\": [\"1\", 1] } },\n  \"4\": { \"class_type\": \"EmptyLatentImage\", \"inputs\": { \"width\": width, \"height\": height, \"batch_size\": count } },\n  \"5\": { \"class_type\": \"KSampler\", \"inputs\": { \"model\": [\"1\", 0], \"positive\": [\"2\", 0], \"negative\": [\"3\", 0], \"latent_image\": [\"4\", 0], \"seed\": Math.floor(Math.random()*9999999999), \"steps\": steps, \"cfg\": cfg, \"sampler_name\": $json.preset?.sampler || \"euler_ancestral\", \"scheduler\": \"karras\", \"denoise\": 1.0 } },\n  \"6\": { \"class_type\": \"VAEDecode\", \"inputs\": { \"samples\": [\"5\", 0], \"vae\": [\"1\", 2] } },\n  \"7\": { \"class_type\": \"SaveImage\", \"inputs\": { \"images\": [\"6\", 0], \"filename_prefix\": `ml_instant_${row.project_name.replace(/\\s+/g,'_').toLowerCase()}` } }\n};\n\nconst comfyUrl = config.comfyui_url || 'http://host.docker.internal:8188';\nconst res = await fetch(`${comfyUrl}/prompt`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ prompt: workflow, client_id: 'moment_labs_instant' }) });\nif (!res.ok) throw new Error(`ComfyUI error: ${res.status}`);\nconst d = await res.json();\nif (!d.prompt_id) throw new Error('No prompt_id');\n\nreturn [{ json: { ...$json, promptId: d.prompt_id, comfyUrl, width, height, count } }];"
+      },
+      "id": "node_comfyui_instant",
+      "name": "ComfyUI — Submit Job",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "command": "node -e \"\nconst https = require('http');\nconst url='{{ $json.comfyUrl }}/history/{{ $json.promptId }}';\nconst max={{ $json.config.poll_max_attempts||36 }}, wait={{ $json.config.poll_interval_sec||5 }}*1000;\nfunction poll(n){if(n>max){console.log(JSON.stringify({done:false,error:'timeout'}));return;}\nhttps.get(url,res=>{let d='';res.on('data',c=>d+=c);res.on('end',()=>{try{const h=JSON.parse(d),e=h['{{ $json.promptId }}'];if(e&&e.status&&e.status.completed){const imgs=[];Object.values(e.outputs).forEach(o=>{if(o.images)o.images.forEach(i=>imgs.push(i));});console.log(JSON.stringify({done:true,images:imgs}));}else{setTimeout(()=>poll(n+1),wait);}}catch(e){setTimeout(()=>poll(n+1),wait);}});}).on('error',()=>setTimeout(()=>poll(n+1),wait));}\npoll(1);\n\""
+      },
+      "id": "node_poll_instant",
+      "name": "Poll ComfyUI",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Download images + write meta.json\nconst fs = require('fs'), path = require('path'), http = require('http');\nconst stdout = $json.stdout || '{}';\nlet pr;\ntry { pr = JSON.parse(stdout.trim().split('\\n').pop()); } catch(e) { throw new Error('Poll parse fail: '+stdout); }\nif (!pr.done) throw new Error('ComfyUI timeout');\n\nconst row=$json.row, enriched=$json.enriched, config=$json.config, social=$json.social;\nconst safeP = row.project_name.replace(/[^a-zA-Z0-9_\\-]/g,'_');\nconst ts = new Date().toISOString().split('T')[0];\nconst outFolder = path.join(config.output_folder, `${ts}_${safeP}_instant`);\nif(!fs.existsSync(outFolder)) fs.mkdirSync(outFolder, {recursive:true});\n\nconst comfyBase = config.comfyui_url || 'http://host.docker.internal:8188';\nconst savedFiles = [];\n\nfor(let i=0;i<(pr.images||[]).length;i++){\n  const img=pr.images[i];\n  const fname=`${safeP}_${String(i+1).padStart(2,'0')}.png`;\n  const fpath=path.join(outFolder,fname);\n  const dlUrl=`${comfyBase}/view?filename=${img.filename}&type=${img.type}&subfolder=${img.subfolder||''}`;\n  await new Promise((res,rej)=>{ const f=fs.createWriteStream(fpath); http.get(dlUrl,r=>{r.pipe(f);f.on('finish',()=>{f.close();res();});}).on('error',e=>{fs.unlinkSync(fpath);rej(e);}); });\n  savedFiles.push({filename:fname,path:fpath});\n}\n\nconst meta = { project_name:row.project_name, use_case:$json.useCase, style:row.style, date:new Date().toISOString(), title:enriched.title, description:enriched.description, tags:enriched.tags, mood:enriched.mood, color_palette:enriched.color_palette, subject_details:enriched.subject_details, main_prompt:enriched.main_prompt, negative_prompt:enriched.negative_prompt, model:$json.model, steps:$json.steps, cfg:$json.cfg, image_count:savedFiles.length, images:savedFiles.map(f=>f.filename), instagram:social.instagram_handle };\nfs.writeFileSync(path.join(outFolder,'meta.json'), JSON.stringify(meta,null,2));\n\ntry { await fetch('http://localhost:5679/webhook/automate-job-log',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({workflow:'Moment.Labs Instant',status:'success',details:`${row.project_name} — ${savedFiles.length} images`})}); } catch(e){}\n\nreturn [{ json: { success:true, project:row.project_name, images:savedFiles.length, folder:outFolder, meta } }];"
+      },
+      "id": "node_save_instant",
+      "name": "Save Images & Meta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "=✅ Done! {{ $json.images }} images saved for \"{{ $json.project }}\".\n\n📁 {{ $json.folder }}\n\n🤖 Moment.Labs"
+      },
+      "id": "node_form_response",
+      "name": "Form Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1560, 300]
+    }
+  ],
+  "connections": {
+    "Form Trigger": {
+      "main": [[{ "node": "Map Form → Project Row", "type": "main", "index": 0 }]]
+    },
+    "Map Form → Project Row": {
+      "main": [[{ "node": "Ollama — Enrich Prompt", "type": "main", "index": 0 }]]
+    },
+    "Ollama — Enrich Prompt": {
+      "main": [[{ "node": "ComfyUI — Submit Job", "type": "main", "index": 0 }]]
+    },
+    "ComfyUI — Submit Job": {
+      "main": [[{ "node": "Poll ComfyUI", "type": "main", "index": 0 }]]
+    },
+    "Poll ComfyUI": {
+      "main": [[{ "node": "Save Images & Meta", "type": "main", "index": 0 }]]
+    },
+    "Save Images & Meta": {
+      "main": [[{ "node": "Form Response", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "none"
+  },
+  "pinData": {},
+  "staticData": null,
+  "tags": [],
+  "meta": {
+    "instanceId": "moment-labs-instant-v1"
+  }
+}

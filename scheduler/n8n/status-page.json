@@ -1,0 +1,86 @@
+{
+  "name": "Status Page Generator",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour":   23,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "n1",
+      "name": "Every Night at 11 PM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [60, 300]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const fs   = require('fs');\nconst path = require('path');\n\n// ── Read configs ─────────────────────────────────────────────\nconst cfg  = JSON.parse(fs.readFileSync('/data/scheduler/config.json',      'utf8'));\nconst ntf  = JSON.parse(fs.readFileSync('/data/notifications/config.json',  'utf8'));\n\n// ── Read job log ─────────────────────────────────────────────\nconst logFile = '/data/scheduler/job_log.csv';\nconst rows = fs.existsSync(logFile)\n  ? fs.readFileSync(logFile, 'utf8').trim().split('\\n').slice(1) // skip header\n  : [];\n\n// ── Build table rows ─────────────────────────────────────────\nconst todayStr = new Date().toISOString().slice(0, 10);\nconst todayRows = rows\n  .filter(r => r.startsWith(todayStr))\n  .map(r => {\n    const [ts, workflow, status, ...rest] = r.split(',');\n    const details = rest.join(',');\n    const icon  = status === 'success' ? '✅' : status === 'error' ? '❌' : '⚙️';\n    const cls   = status === 'success' ? 'success' : status === 'error' ? 'error' : 'running';\n    return `<tr><td>${ts.slice(11)}</td><td>${workflow}</td><td class=\"${cls}\">${icon} ${status}</td><td>${details}</td></tr>`;\n  });\n\nconst allRows = rows.slice(-100).reverse().map(r => {\n  const [ts, workflow, status, ...rest] = r.split(',');\n  const details = rest.join(',');\n  const cls = status === 'success' ? 'success' : status === 'error' ? 'error' : 'running';\n  return `<tr><td>${ts}</td><td>${workflow}</td><td class=\"${cls}\">${status}</td><td>${details}</td></tr>`;\n});\n\nconst genTime = new Date().toLocaleString('en-IN', { timeZone: cfg.timezone || 'Asia/Kolkata' });\n\n// ── Build workflow quick-links ────────────────────────────────\nconst host  = cfg.n8n_host || 'localhost';\nconst port  = cfg.n8n_port || '5679';\nconst cards = Object.entries(cfg.workflow_form_ids || {}).map(([name, id]) =>\n  `<a class=\"card\" href=\"http://${host}:${port}/form/${id}\" target=\"_blank\">▶ ${name}</a>`\n).join('\\n');\n\n// ── Generate HTML ─────────────────────────────────────────────\nconst html = `<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>Automate Hub — Status</title>\n<style>\n  * { box-sizing: border-box; margin: 0; padding: 0; }\n  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;\n         background: #0f1117; color: #e2e8f0; padding: 24px; }\n  h1 { font-size: 1.6rem; font-weight: 700; color: #fff; }\n  h2 { font-size: 1rem; font-weight: 600; color: #94a3b8; margin: 28px 0 10px; text-transform: uppercase; letter-spacing: .06em; }\n  .meta { color: #64748b; font-size: .85rem; margin: 4px 0 20px; }\n  .cards { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 8px; }\n  .card { background: #1e293b; border: 1px solid #334155; border-radius: 8px;\n          padding: 10px 16px; color: #7dd3fc; text-decoration: none; font-size: .9rem; }\n  .card:hover { background: #2d4263; }\n  table { width: 100%; border-collapse: collapse; font-size: .85rem; }\n  th { background: #1e293b; color: #94a3b8; padding: 10px 12px; text-align: left; }\n  td { padding: 9px 12px; border-bottom: 1px solid #1e293b; }\n  tr:hover td { background: #161c2a; }\n  .success { color: #4ade80; }\n  .error   { color: #f87171; }\n  .running { color: #fbbf24; }\n  .empty   { color: #475569; padding: 20px 0; }\n  @media(max-width:600px) { body { padding: 14px; } table { font-size: .78rem; } }\n</style>\n</head>\n<body>\n<h1>⚡ Automate Hub</h1>\n<p class=\"meta\">Status page · Generated ${genTime}</p>\n\n<h2>Quick Launch</h2>\n<div class=\"cards\">\n${cards || '<span class=\"empty\">No workflows configured in scheduler/config.json</span>'}\n</div>\n\n<h2>Today's Activity</h2>\n<table>\n  <tr><th>Time</th><th>Workflow</th><th>Status</th><th>Details</th></tr>\n  ${todayRows.length ? todayRows.join('\\n  ') : '<tr><td colspan=\"4\" class=\"empty\">No jobs ran today</td></tr>'}\n</table>\n\n<h2>Recent History (last 100)</h2>\n<table>\n  <tr><th>Timestamp</th><th>Workflow</th><th>Status</th><th>Details</th></tr>\n  ${allRows.length ? allRows.join('\\n  ') : '<tr><td colspan=\"4\" class=\"empty\">No history yet</td></tr>'}\n</table>\n</body>\n</html>`;\n\n// ── Save HTML ─────────────────────────────────────────────────\nconst outPath = '/data/scheduler/status.html';\nfs.writeFileSync(outPath, html, 'utf8');\n\n// ── Telegram summary (optional) ───────────────────────────────\nconst successCount = todayRows.filter(r => r.includes('class=\"success\"')).length;\nconst errorCount   = todayRows.filter(r => r.includes('class=\"error\"')).length;\nconst tgMsg = cfg.send_status_to_telegram && ntf.telegram_bot_token !== 'YOUR_BOT_TOKEN_HERE'\n  ? `📋 <b>Status Page Updated</b>\\n\\n✅ ${successCount} succeeded · ❌ ${errorCount} failed\\n📅 ${new Date().toLocaleDateString('en-IN', { timeZone: cfg.timezone })}\\n\\n<i>Open status.html in your browser</i>`\n  : null;\n\nreturn [{ json: { saved: outPath, today_jobs: todayRows.length, tg_msg: tgMsg,\n  tg_token: ntf.telegram_bot_token, tg_chat: ntf.telegram_chat_id } }];"
+      },
+      "id": "n2",
+      "name": "Build Status Page",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [280, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": false },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue":  "={{ $json.tg_msg }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "notEmpty" }
+            }
+          ]
+        }
+      },
+      "id": "n3",
+      "name": "Send to Telegram?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $json.tg_token }}/sendMessage",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({ chat_id: $json.tg_chat, text: $json.tg_msg, parse_mode: 'HTML' }) }}",
+        "options": { "timeout": 10000 }
+      },
+      "id": "n4",
+      "name": "Notify Telegram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [720, 200]
+    }
+  ],
+  "connections": {
+    "Every Night at 11 PM": {
+      "main": [[{ "node": "Build Status Page", "type": "main", "index": 0 }]]
+    },
+    "Build Status Page": {
+      "main": [[{ "node": "Send to Telegram?", "type": "main", "index": 0 }]]
+    },
+    "Send to Telegram?": {
+      "main": [
+        [{ "node": "Notify Telegram", "type": "main", "index": 0 }],
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1" },
+  "staticData": null,
+  "tags": [{ "name": "scheduler" }]
+}

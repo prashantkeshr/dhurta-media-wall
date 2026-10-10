@@ -1,0 +1,20 @@
+{
+  "_help": "Fill in your PC's local IP so you can open workflow forms from your phone or tablet.",
+  "_tip_ip": "Find your IP: open Command Prompt → type 'ipconfig' → look for IPv4 Address (e.g. 192.168.1.10)",
+  "_tip_port": "Leave port as 5679 unless you changed it in .env",
+
+  "n8n_host": "localhost",
+  "n8n_port": "5679",
+
+  "_workflows_help": "These are the form URLs for each workflow. Bookmark links.html to open them fast.",
+  "workflow_form_ids": {
+    "AI Content Generator":          "automate-content-gen-v1",
+    "Image Processor":               "automate-image-processor-v1"
+  },
+
+  "status_page_schedule": "23:00",
+  "timezone": "Asia/Kolkata",
+
+  "send_status_to_telegram": true,
+  "_tip_telegram": "Set to false if you don't want the daily status page sent to Telegram"
+}

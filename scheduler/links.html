@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Automate Hub — Quick Links</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+         background: #0f1117; color: #e2e8f0; min-height: 100vh;
+         display: flex; flex-direction: column; align-items: center;
+         padding: 40px 20px; }
+  h1  { font-size: 1.8rem; font-weight: 800; color: #fff; margin-bottom: 4px; }
+  .sub { color: #64748b; font-size: .9rem; margin-bottom: 36px; }
+  .section { width: 100%; max-width: 520px; margin-bottom: 32px; }
+  h2  { font-size: .75rem; font-weight: 700; color: #475569; text-transform: uppercase;
+        letter-spacing: .1em; margin-bottom: 10px; }
+  .grid { display: grid; gap: 10px; }
+  a.card {
+    display: flex; align-items: center; gap: 14px;
+    background: #1e293b; border: 1px solid #334155; border-radius: 12px;
+    padding: 16px 20px; color: #e2e8f0; text-decoration: none;
+    transition: background .15s, border-color .15s;
+  }
+  a.card:hover { background: #253349; border-color: #4a6fa5; }
+  .icon { font-size: 1.5rem; flex-shrink: 0; }
+  .info .name { font-weight: 600; font-size: .95rem; }
+  .info .desc { font-size: .78rem; color: #64748b; margin-top: 2px; }
+  .badge { margin-left: auto; font-size: .7rem; background: #0f2944;
+           color: #7dd3fc; border-radius: 6px; padding: 3px 8px; flex-shrink: 0; }
+  .tip  { width: 100%; max-width: 520px; background: #1a1f2e; border: 1px solid #2d3748;
+          border-radius: 10px; padding: 14px 18px; font-size: .82rem; color: #94a3b8; }
+  .tip b { color: #cbd5e1; }
+  code  { background: #0f1823; border-radius: 4px; padding: 1px 5px; font-size: .8rem; }
+</style>
+</head>
+<body>
+
+<h1>⚡ Automate Hub</h1>
+<p class="sub">Quick access to all workflow forms</p>
+
+<div class="section">
+  <h2>Workflows</h2>
+  <div class="grid">
+
+    <a class="card" href="http://localhost:1080/form/moment-labs-instant-v1" target="_blank">
+      <span class="icon">🖼️</span>
+      <div class="info">
+        <div class="name">Moment.Labs — Generate Now</div>
+        <div class="desc">Instant wallpaper · poster · sticker · frame via Ollama + ComfyUI</div>
+      </div>
+      <span class="badge" style="background:#1a1040;color:#c4b5fd;">FORM</span>
+    </a>
+
+    <a class="card" href="http://localhost:1080/form/automate-content-gen-v1" target="_blank">
+      <span class="icon">📝</span>
+      <div class="info">
+        <div class="name">AI Content Generator</div>
+        <div class="desc">Blog post + social caption from a topic via Ollama</div>
+      </div>
+      <span class="badge">FORM</span>
+    </a>
+
+    <a class="card" href="http://localhost:1080/form/automate-image-processor-v1" target="_blank">
+      <span class="icon">🔲</span>
+      <div class="info">
+        <div class="name">Image Processor</div>
+        <div class="desc">Resize + watermark to all platform sizes</div>
+      </div>
+      <span class="badge">FORM</span>
+    </a>
+
+  </div>
+</div>
+
+<div class="section">
+  <h2>Management</h2>
+  <div class="grid">
+
+    <a class="card" href="http://localhost:1080" target="_blank">
+      <span class="icon">🔧</span>
+      <div class="info">
+        <div class="name">n8n Dashboard</div>
+        <div class="desc">View workflows, executions, and settings</div>
+      </div>
+      <span class="badge">ADMIN</span>
+    </a>
+
+    <a class="card" href="./status.html" target="_blank">
+      <span class="icon">📊</span>
+      <div class="info">
+        <div class="name">Status Page</div>
+        <div class="desc">Today's activity log — updated nightly at 11 PM</div>
+      </div>
+      <span class="badge">LOCAL</span>
+    </a>
+
+  </div>
+</div>
+
+<div class="tip">
+  <b>Accessing from phone or another device?</b><br>
+  Replace <code>localhost</code> in the URLs above with your PC's local IP address.<br>
+  Find it: open Command Prompt → type <code>ipconfig</code> → look for IPv4 Address.<br>
+  Example: <code>http://192.168.1.10:1080/form/automate-content-gen-v1</code>
+</div>
+
+</body>
+</html>

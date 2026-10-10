@@ -1,0 +1,19 @@
+{
+  "_help": "Fill in your Telegram bot token and chat ID. See notifications/README.md for step-by-step setup (takes 2 minutes).",
+
+  "_tip_token":    "Get this from @BotFather on Telegram — send it /newbot",
+  "_tip_chat_id":  "Get this by messaging @userinfobot on Telegram",
+  "_tip_time":     "Daily summary time in 24-hour format. '08:00' = 8 AM.",
+  "_tip_errors":   "Set notify_on_error to false to stop getting error alerts",
+
+  "telegram_bot_token": "YOUR_BOT_TOKEN_HERE",
+  "telegram_chat_id":   "YOUR_CHAT_ID_HERE",
+
+  "daily_summary_time": "08:00",
+  "timezone":           "Asia/Kolkata",
+
+  "notify_on_error":   true,
+  "notify_on_success": false,
+
+  "project_name": "Automate Hub"
+}
