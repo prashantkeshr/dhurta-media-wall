@@ -3,11 +3,12 @@
 
   "comfyui_url": "http://host.docker.internal:8188",
 
-  "_models_tip": "Check exact filenames in your ComfyUI/models/checkpoints/ folder",
+  "_models_tip": "Exact filenames from ComfyUI/models/checkpoints/ — run start.bat option 3 and check ComfyUI model list",
   "models": {
-    "realvis": "realvisxlV50_v50Bakedvae.safetensors",
+    "realvis": "RealVisXL_V5.0_fp16.safetensors",
     "sdxl":    "sd_xl_base_1.0.safetensors",
-    "fast":    "sdxlTurboV10_fp16.safetensors"
+    "fast":    "DreamShaperXL_Turbo_v2_1.safetensors",
+    "juggernaut": "Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors"
   },
 
   "default_model":  "realvis",
@@ -21,8 +22,8 @@
     "height": 1920
   },
 
-  "_poll_tip": "How long to wait for each ComfyUI image. Increase if getting timeouts.",
-  "poll_max_attempts": 36,
+  "_poll_tip": "Total wait = poll_max_attempts × poll_interval_sec seconds. 120×5 = 10 minutes.",
+  "poll_max_attempts": 120,
   "poll_interval_sec": 5,
 
   "projects_source": "google_sheet",
