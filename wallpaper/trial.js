@@ -90,10 +90,18 @@ async function main() {
 
   let enriched;
   try {
-    const oData = await fetchJson(`${config.ollama_url}/api/chat`, {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ model: config.ollama_model, messages:[{role:'system',content:systemPrompt},{role:'user',content:userPrompt}], stream:false, options:{temperature:0.8,num_predict:2000} })
-    });
+    let oData, lastErr;
+    for (let retry = 0; retry < 3; retry++) {
+      if (retry > 0) { await sleep(3000); log('OLLAMA', `Retry ${retry}...`); }
+      try {
+        oData = await fetchJson(`${config.ollama_url}/api/chat`, {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ model: config.ollama_model, messages:[{role:'system',content:systemPrompt},{role:'user',content:userPrompt}], stream:false, options:{temperature:0.8,num_predict:2000} })
+        });
+        break;
+      } catch(e) { lastErr = e; }
+    }
+    if (!oData) throw lastErr;
     const raw = oData.message?.content || oData.response || '{}';
     const m   = raw.match(/\{[\s\S]*\}/);
     let jsonStr = m ? m[0] : raw;
@@ -124,8 +132,8 @@ async function main() {
   const models   = config.models || {};
   const modelKey = row.model || config.default_model || 'realvis';
   const modelFile= models[modelKey] || models['realvis'];
-  const count    = parseInt(row.count) || config.default_count || 4;
-  const steps    = parseInt(row.steps) || preset.steps || config.default_steps || 25;
+  const count    = 1; // trial: always 1 image for speed (production uses row.count)
+  const steps    = 20; // trial: 20 steps for speed (production uses row.steps or preset)
   const cfg      = parseFloat(row.cfg_scale) || preset.cfg || config.default_cfg || 7.5;
   const W = config.image?.width || 1080, H = config.image?.height || 1920;
 
